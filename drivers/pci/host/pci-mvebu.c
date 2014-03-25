@@ -976,7 +976,7 @@ static int mvebu_pcie_probe(struct platform_device *pdev)
 		}
 
 		mvebu_pcie_set_local_dev_nr(port, 1);
-		udelay(1000000);
+		mdelay(1000);
 
 		port->dn = child;
 		spin_lock_init(&port->conf_lock);
