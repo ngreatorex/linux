@@ -1003,15 +1003,17 @@ static int mvebu_pcie_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "ICR is %x\n", mvebu_readl(port, 0x1900));
 		mvebu_writel(port, 0, 0x1900);
 
+#define DELAY_INTERVAL  2
 		{
 			unsigned int j;
 
 			for (j=1; j <= 15; j++) {
-				mdelay(2);
+				mdelay(DELAY_INTERVAL);
 				mvebu_writel(port, PCIE_CONF_ADDR(1, 0, 0), PCIE_CONF_ADDR_OFF);
-				dev_info(&pdev->dev, "Try %d: Vendor ID is %x\n",
-					 j, mvebu_readl(port, PCIE_CONF_DATA_OFF));
+				dev_info(&pdev->dev, "After %d ms: Vendor ID is %x\n",
+					 j * DELAY_INTERVAL, mvebu_readl(port, PCIE_CONF_DATA_OFF));
 				dev_info(&pdev->dev, "ICR is %x\n", mvebu_readl(port, 0x1900));
+				mvebu_writel(port, 0, 0x1900);
 			}
 		}
 
