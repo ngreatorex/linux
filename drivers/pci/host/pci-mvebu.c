@@ -1002,12 +1002,18 @@ static int mvebu_pcie_probe(struct platform_device *pdev)
 			 mvebu_readl(port, PCIE_CONF_DATA_OFF));
 		dev_info(&pdev->dev, "ICR is %x\n", mvebu_readl(port, 0x1900));
 		mvebu_writel(port, 0, 0x1900);
-		msleep(1000);
-		mvebu_writel(port, PCIE_CONF_ADDR(1, 0, 0), PCIE_CONF_ADDR_OFF);
-		dev_info(&pdev->dev, "Try 2: Vendor ID is %x\n",
-			 mvebu_readl(port, PCIE_CONF_DATA_OFF));
-		dev_info(&pdev->dev, "ICR is %x\n", mvebu_readl(port, 0x1900));
 
+		{
+			unsigned int j;
+
+			for (j=1; j <= 10; j++) {
+				msleep(100);
+				mvebu_writel(port, PCIE_CONF_ADDR(1, 0, 0), PCIE_CONF_ADDR_OFF);
+				dev_info(&pdev->dev, "Try %d: Vendor ID is %x\n",
+					 j, mvebu_readl(port, PCIE_CONF_DATA_OFF));
+				dev_info(&pdev->dev, "ICR is %x\n", mvebu_readl(port, 0x1900));
+			}
+		}
 
 		port->dn = child;
 		spin_lock_init(&port->conf_lock);
