@@ -49,6 +49,10 @@
 	 PCIE_CONF_FUNC(PCI_FUNC(devfn)) | PCIE_CONF_REG(where) | \
 	 PCIE_CONF_ADDR_EN)
 #define PCIE_CONF_DATA_OFF	0x18fc
+#define PCIE_ICR		0x1900
+#define  PCIE_ICR_TX_IN_DOWN		BIT(0)
+#define  PCIE_ICR_NFERR_DET		BIT(9)
+#define  PCIE_ICR_CRS			BIT(19)
 #define PCIE_MASK_OFF		0x1910
 #define  PCIE_MASK_ENABLE_INTS          0x0f000000
 #define PCIE_CTRL_OFF		0x1a00
@@ -254,10 +258,44 @@ static int mvebu_pcie_hw_rd_conf(struct mvebu_pcie_port *port,
 				 struct pci_bus *bus,
 				 u32 devfn, int where, int size, u32 *val)
 {
-	mvebu_writel(port, PCIE_CONF_ADDR(bus->number, devfn, where),
-		     PCIE_CONF_ADDR_OFF);
+	unsigned int tries = 0;
 
-	*val = mvebu_readl(port, PCIE_CONF_DATA_OFF);
+	while (1) {
+		if (where == 0)
+			mvebu_writel(port, ~(PCIE_ICR_TX_IN_DOWN |
+					     PCIE_ICR_NFERR_DET | PCIE_ICR_CRS),
+				     PCIE_ICR);
+
+		mvebu_writel(port, PCIE_CONF_ADDR(bus->number, devfn, where),
+			     PCIE_CONF_ADDR_OFF);
+
+		*val = mvebu_readl(port, PCIE_CONF_DATA_OFF);
+
+		if (where == 0) {
+			u32 icr = mvebu_readl(port, PCIE_ICR);
+			if (icr & PCIE_ICR_TX_IN_DOWN)
+				goto err_out;
+
+			/*
+			 * Implement Configuration Request Retry. If the
+			 * configuration requst for the ID fails with a CRS or
+			 * Non-Fatal status we try again for 100 ms. NFERR_DET
+			 * is checked too, because CRS doesn't seem
+			 * reliable */
+			if (icr & (PCIE_ICR_NFERR_DET | PCIE_ICR_CRS)) {
+				if (tries >= 100)
+					goto err_out;
+				mdelay(1);
+				tries++;
+				continue;
+			}
+		}
+		break;
+	}
+	if (tries != 0)
+		dev_info(&port->pcie->pdev->dev,
+			 "Port %u repeated ID read %u times\n", port->port,
+			 tries);
 
 	if (size == 1)
 		*val = (*val >> (8 * (where & 3))) & 0xff;
@@ -265,6 +303,10 @@ static int mvebu_pcie_hw_rd_conf(struct mvebu_pcie_port *port,
 		*val = (*val >> (8 * (where & 3))) & 0xffff;
 
 	return PCIBIOS_SUCCESSFUL;
+
+err_out:
+	*val = 0xffffffff;
+	return PCIBIOS_DEVICE_NOT_FOUND;
 }
 
 static int mvebu_pcie_hw_wr_conf(struct mvebu_pcie_port *port,
