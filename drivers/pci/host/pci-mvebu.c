@@ -977,6 +977,36 @@ static int mvebu_pcie_probe(struct platform_device *pdev)
 
 		mvebu_pcie_set_local_dev_nr(port, 1);
 
+		/* Wait for the link to come up */
+		if (!mvebu_pcie_link_up(port)) {
+			unsigned int I;
+
+			dev_info(&pdev->dev, "Waiting for link up\n");
+			for (I = 0; I != 100; I++) {
+				udelay(100);
+				if (mvebu_pcie_link_up(port))
+					break;
+			}
+			dev_info(&pdev->dev, "Link is %u\n",
+				 mvebu_pcie_link_up(port));
+		}
+
+		/* Clear and report the ICR */
+		mvebu_writel(port, 0, 0x1900);
+		dev_info(&pdev->dev, "ICR is %x\n", mvebu_readl(port, 0x1900));
+
+		/* Read the vendor ID from the connected device */
+		mvebu_writel(port, PCIE_CONF_ADDR(1, 0, 0), PCIE_CONF_ADDR_OFF);
+		dev_info(&pdev->dev, "Vendor ID is %x\n",
+			 mvebu_readl(port, PCIE_CONF_DATA_OFF));
+		dev_info(&pdev->dev, "ICR is %x\n", mvebu_readl(port, 0x1900));
+		msleep(1000);
+		mvebu_writel(port, PCIE_CONF_ADDR(1, 0, 0), PCIE_CONF_ADDR_OFF);
+		dev_info(&pdev->dev, "Try 2: Vendor ID is %x\n",
+			 mvebu_readl(port, PCIE_CONF_DATA_OFF));
+		dev_info(&pdev->dev, "ICR is %x\n", mvebu_readl(port, 0x1900));
+
+
 		port->dn = child;
 		spin_lock_init(&port->conf_lock);
 		mvebu_sw_pci_bridge_init(port);
