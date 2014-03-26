@@ -172,7 +172,7 @@ static void mvebu_pcie_set_local_dev_nr(struct mvebu_pcie_port *port, int nr)
 	mvebu_writel(port, stat, PCIE_STAT_OFF);
 }
 
-static void mvebu_pcie_get_local_dev_nr(struct mvebu_pcie_port *port)
+static int mvebu_pcie_get_local_dev_nr(struct mvebu_pcie_port *port)
 {
 	return (mvebu_readl(port, PCIE_STAT_OFF) & PCIE_STAT_DEV) >> 16;
 }
@@ -985,17 +985,20 @@ static int mvebu_pcie_probe(struct platform_device *pdev)
 
 		mvebu_pcie_set_local_dev_nr(port, 1);
 
-		/* Check the local dev nr over the next second */
-		int j;
-		for (j=0; j < 10; j++) {
-			mdelay(100);
-			dev_info(&pdev->dev, "Local dev nr is now %d\n",
-				mvebu_pcie_get_local_dev_nr(port));
+		/* Check the local dev nr over the next 2 seconds */
+		{
+			int j;
 
-			/* Read the vendor ID from the connected device */
-			mvebu_writel(port, PCIE_CONF_ADDR(1, 0, 0), PCIE_CONF_ADDR_OFF);
-			dev_info(&pdev->dev, "Vendor ID is %x\n",
-				 mvebu_readl(port, PCIE_CONF_DATA_OFF));
+			for (j=0; j < 20; j++) {
+				mdelay(100);
+				dev_info(&pdev->dev, "Local dev nr is now %d\n",
+					mvebu_pcie_get_local_dev_nr(port));
+
+				/* Read the vendor ID from the connected device */
+				mvebu_writel(port, PCIE_CONF_ADDR(1, 0, 0), PCIE_CONF_ADDR_OFF);
+				dev_info(&pdev->dev, "Vendor ID is %x\n",
+					 mvebu_readl(port, PCIE_CONF_DATA_OFF));
+			}
 		}
 
 		port->dn = child;
