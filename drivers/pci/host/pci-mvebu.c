@@ -1006,8 +1006,8 @@ static int mvebu_pcie_probe(struct platform_device *pdev)
 		{
 			unsigned int j;
 
-			for (j=1; j <= 10; j++) {
-				msleep(100);
+			for (j=1; j <= 15; j++) {
+				mdelay(10);
 				mvebu_writel(port, PCIE_CONF_ADDR(1, 0, 0), PCIE_CONF_ADDR_OFF);
 				dev_info(&pdev->dev, "Try %d: Vendor ID is %x\n",
 					 j, mvebu_readl(port, PCIE_CONF_DATA_OFF));
