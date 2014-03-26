@@ -273,6 +273,8 @@ static int mvebu_pcie_hw_rd_conf(struct mvebu_pcie_port *port,
 
 		if (where == 0) {
 			u32 icr = mvebu_readl(port, PCIE_ICR);
+			dev_info(&port->pcie->pdev->dev,
+				 "ICR is %x\n", icr);
 			if (icr & PCIE_ICR_TX_IN_DOWN)
 				goto err_out;
 
