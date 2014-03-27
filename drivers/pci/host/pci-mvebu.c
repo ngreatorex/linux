@@ -273,7 +273,7 @@ static int mvebu_pcie_hw_rd_conf(struct mvebu_pcie_port *port,
 
 		if (where == 0) {
 			u32 icr = mvebu_readl(port, PCIE_ICR);
-			dev_debug(&port->pcie->pdev->dev,
+			dev_dbg(&port->pcie->pdev->dev,
 				 "ICR is %x\n", icr);
 			if (icr & PCIE_ICR_TX_IN_DOWN)
 				goto err_out;
@@ -420,7 +420,7 @@ static void mvebu_sw_pci_bridge_init(struct mvebu_pcie_port *port)
 {
 	struct mvebu_sw_pci_bridge *bridge = &port->bridge;
 
-	dev_debug(&port->pcie->pdev->dev, "mvebu_sw_pci_bridge_init on port %d, lane %d, devfn %d", port->port, port->lane, port->devfn);
+	dev_dbg(&port->pcie->pdev->dev, "mvebu_sw_pci_bridge_init on port %d, lane %d, devfn %d", port->port, port->lane, port->devfn);
 
 	memset(bridge, 0, sizeof(struct mvebu_sw_pci_bridge));
 
@@ -445,7 +445,7 @@ static int mvebu_sw_pci_bridge_read(struct mvebu_pcie_port *port,
 {
 	struct mvebu_sw_pci_bridge *bridge = &port->bridge;
 
-	dev_debug(&port->pcie->pdev->dev, 
+	dev_dbg(&port->pcie->pdev->dev, 
 		  "mvebu_sw_pci_bridge_read on port %d, lane %d, devfn %d, where %x", 
 		  port->port, port->lane, port->devfn, where);
 
@@ -530,7 +530,7 @@ static int mvebu_sw_pci_bridge_write(struct mvebu_pcie_port *port,
 	u32 mask, reg;
 	int err;
 
-	dev_debug(&port->pcie->pdev->dev, 
+	dev_dbg(&port->pcie->pdev->dev, 
 		  "mvebu_sw_pci_bridge_write on port %d, lane %d, devfn %d, where %x", 
 		  port->port, port->lane, port->devfn, where);
 
@@ -644,7 +644,7 @@ static int mvebu_pcie_wr_conf(struct pci_bus *bus, u32 devfn,
 	if (!port)
 		return PCIBIOS_DEVICE_NOT_FOUND;
 
-	dev_debug(&port->pcie->pdev->dev, 
+	dev_dbg(&port->pcie->pdev->dev, 
 		  "mvebu_pcie_wr_conf on port %d, lane %d, devfn %d, where %x", 
 		  port->port, port->lane, port->devfn, where);
 
@@ -690,7 +690,7 @@ static int mvebu_pcie_rd_conf(struct pci_bus *bus, u32 devfn, int where,
 		return PCIBIOS_DEVICE_NOT_FOUND;
 	}
 
-	dev_debug(&port->pcie->pdev->dev, 
+	dev_dbg(&port->pcie->pdev->dev, 
 		  "mvebu_pcie_rd_conf on port %d, lane %d, devfn %d, where %x", 
 		  port->port, port->lane, port->devfn, where);
 
@@ -735,7 +735,7 @@ static int mvebu_pcie_setup(int nr, struct pci_sys_data *sys)
 	struct mvebu_pcie *pcie = sys_to_pcie(sys);
 	int i;
 
-	dev_debug(&pcie->pdev->dev, 
+	dev_dbg(&pcie->pdev->dev, 
 		  "mvebu_pcie_setup on bus %d", 
 		  nr);
 
@@ -760,7 +760,7 @@ static struct pci_bus *mvebu_pcie_scan_bus(int nr, struct pci_sys_data *sys)
 	struct mvebu_pcie *pcie = sys_to_pcie(sys);
 	struct pci_bus *bus;
 
-	dev_debug(&pcie->pdev->dev, "mvebu_pcie_scan_bus on bus %d", nr);
+	dev_dbg(&pcie->pdev->dev, "mvebu_pcie_scan_bus on bus %d", nr);
 
 	bus = pci_create_root_bus(&pcie->pdev->dev, sys->busnr,
 				  &mvebu_pcie_ops, sys, &sys->resources);
@@ -775,7 +775,7 @@ static struct pci_bus *mvebu_pcie_scan_bus(int nr, struct pci_sys_data *sys)
 static void mvebu_pcie_add_bus(struct pci_bus *bus)
 {
 	struct mvebu_pcie *pcie = sys_to_pcie(bus->sysdata);
-	dev_debug(&pcie->pdev->dev, "mvebu_pcie_add_bus on bus %d", bus->);
+	dev_dbg(&pcie->pdev->dev, "mvebu_pcie_add_bus on bus %d", bus->number);
 	bus->msi = pcie->msi;
 }
 
@@ -909,7 +909,7 @@ static int mvebu_pcie_probe(struct platform_device *pdev)
 	struct device_node *child;
 	int i, ret;
 
-	dev_debug(&pdev->dev, "mvebu_pcie_probe");
+	dev_dbg(&pdev->dev, "mvebu_pcie_probe");
 
 	pcie = devm_kzalloc(&pdev->dev, sizeof(struct mvebu_pcie),
 			    GFP_KERNEL);
