@@ -935,6 +935,7 @@ static int mvebu_pcie_probe(struct platform_device *pdev)
 	for_each_child_of_node(pdev->dev.of_node, child) {
 		struct mvebu_pcie_port *port = &pcie->ports[i];
 		enum of_gpio_flags flags;
+		u32 link_present, retry_count = 0;
 
 		if (!of_device_is_available(child))
 			continue;
@@ -1019,8 +1020,63 @@ static int mvebu_pcie_probe(struct platform_device *pdev)
 			continue;
 		}
 
+		/* After setting the local dev number, the PCI-E link may go
+		 * down for a period of time. If we don't wait for it to come
+		 * back up, then we risk missing enumerating that device when
+		 * we scan the bus. However, if the link was down to begin with,
+		 * there's no point waiting, so check now.
+		 */
+		link_present = mvebu_pcie_link_up(port);
+
 		mvebu_pcie_set_local_dev_nr(port, 1);
-		mdelay(1000);
+
+		if (link_present) {
+			/* In testing, the link took ~25ms to go down, and
+			 * another ~15ms to come back up, so wait ~40ms for the
+			 * link to go down, and then up to ~100ms for it to come
+			 * back up. If the link doesn't go down after ~40ms, then
+			 * it probably won't go down at all, so carry on.
+			 */
+			if (mvebu_pcie_link_up(port)) {
+				while (retry_count < 40) {
+					if (!mvebu_pcie_link_up(port))
+						break;
+					retry_count++;
+					mdelay(1);
+				}
+
+				if (retry_count == 40) {
+					dev_dbg(&pdev->dev,
+						"PCIe%d.%d: after setting dev nr, link stayed up\n",
+						port->port, port->lane);
+				} else {
+					dev_info(&pdev->dev,
+						 "PCIe%d.%d: after setting dev nr, link went down after %d polls\n",
+						 port->port, port->lane, retry_count);
+				}
+			}
+
+			retry_count = 0;
+
+			if (!mvebu_pcie_link_up(port)) {
+				while (retry_count < 100) {
+					if (mvebu_pcie_link_up(port))
+						break;
+					retry_count++;
+					mdelay(1);
+				}
+
+				if (retry_count == 100) {
+					dev_info(&pdev->dev,
+						"PCIe%d.%d: after setting dev nr, link failed to come back up (timeout)\n",
+						port->port, port->lane);
+				} else {
+					dev_info(&pdev->dev,
+						 "PCIe%d.%d: after setting dev nr, link came back up after %d polls ",
+						 port->port, port->lane, retry_count);
+				}
+			}
+		}
 
 		port->dn = child;
 		spin_lock_init(&port->conf_lock);
