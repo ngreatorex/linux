@@ -57,6 +57,7 @@
 #define  PCIE_MASK_ENABLE_INTS          0x0f000000
 #define PCIE_CTRL_OFF		0x1a00
 #define  PCIE_CTRL_X1_MODE		0x0001
+#define  PCIE_CTRL_CRS_ENABLE		BIT(31)
 #define PCIE_STAT_OFF		0x1a04
 #define  PCIE_STAT_BUS                  0xff00
 #define  PCIE_STAT_DEV                  0x1f0000
@@ -261,10 +262,13 @@ static int mvebu_pcie_hw_rd_conf(struct mvebu_pcie_port *port,
 	unsigned int tries = 0;
 
 	while (1) {
-		if (where == 0)
-			mvebu_writel(port, ~(PCIE_ICR_TX_IN_DOWN |
-					     PCIE_ICR_NFERR_DET | PCIE_ICR_CRS),
-				     PCIE_ICR);
+		if (where == 0) {
+			u32 stat;
+			stat = mvebu_readl(port, PCIE_ICR);
+			stat &= ~(PCIE_ICR_TX_IN_DOWN |
+			     	  PCIE_ICR_NFERR_DET | PCIE_ICR_CRS);
+			mvebu_writel(port, stat, PCIE_ICR);
+		}
 
 		mvebu_writel(port, PCIE_CONF_ADDR(bus->number, devfn, where),
 			     PCIE_CONF_ADDR_OFF);
@@ -274,7 +278,8 @@ static int mvebu_pcie_hw_rd_conf(struct mvebu_pcie_port *port,
 		if (where == 0) {
 			u32 icr = mvebu_readl(port, PCIE_ICR);
 			dev_dbg(&port->pcie->pdev->dev,
-				 "ICR is %x\n", icr);
+				 "ICR for bus %d, slot %d is %x\n", 
+				 bus->number, PCI_SLOT(devfn), icr);
 			if (icr & PCIE_ICR_TX_IN_DOWN)
 				goto err_out;
 
